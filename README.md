@@ -1,89 +1,80 @@
 # Multi-Switch Flow Table Analyzer
-**Name:** Catherine D
+**Name:** Catherine D  
 **SRN:** PES1UG24CS120
-**Course:** UE24CS252B - Computer Networks
-
----
 
 ## Problem Statement
-Implement an SDN-based solution using Mininet and POX controller that analyzes 
-flow tables across multiple switches and displays rule usage statistics.
+Design and implement an SDN-based flow table analyzer that monitors and displays flow rule usage across multiple OpenFlow switches in a Mininet topology using a POX controller.
 
----
+## Project Structure
+- `topology.py` - Mininet topology with 3 switches and 6 hosts
+- `flow_analyzer_controller.py` - POX SDN controller with OpenFlow flow rules
+- `analyzer.py` - Flow table analyzer that queries and displays rule usage
 
-## Topology
-h1, h2 -- s1 -- s2 -- s3 -- h5, h6
-                 |
-               h3, h4
+## Setup Requirements
+- Mininet 2.3.0
+- POX Controller (gar branch)
+- Open vSwitch 3.3.4
+- Python 3.x
 
-- 3 OpenFlow switches (s1, s2, s3)
-- 6 hosts (h1-h6)
-- POX SDN Controller
+## Execution Steps
 
----
-
-## Files
-| File | Description |
-|------|-------------|
-| flow_analyzer_controller.py | POX controller with flow rule installation |
-| topology.py | Mininet custom topology |
-| analyzer.py | Flow table analyzer and display script |
-
----
-
-## Setup & Execution
-
-### Step 1: Start POX Controller
+### Step 1 - Start POX Controller (Terminal 1)
 cd ~/pox
-python3 pox.py log.level --DEBUG flow_analyzer_controller
+python3 pox.py log.level --DEBUG controller
 
-### Step 2: Start Mininet Topology (new terminal)
+### Step 2 - Start Mininet Topology (Terminal 2)
 cd ~/sdn_project
 sudo python3 topology.py
 
-### Step 3: Run tests inside Mininet
-pingall
-h1 ping -c 4 h6
-h6 iperf -s &
-h1 iperf -c 10.0.0.6 -t 5
-
-### Step 4: Run Flow Analyzer (new terminal)
+### Step 3 - Run Flow Analyzer (Terminal 3)
 cd ~/sdn_project
-sudo python3 analyzer.py
+sudo python3 analyzer.py --interval 5 --rounds 5
 
----
+## Topology
+h1, h2 -- s1 -- s2 -- s3 -- h5, h6
+                |
+              h3, h4
 
-## Expected Output
-- pingall: 0% packet loss across all 6 hosts
-- ping h1 to h6: ~1.5ms average latency across 3 switches
-- iperf: ~53 Gbits/sec TCP bandwidth
-- Flow Analyzer shows 4 rules per switch, all active
-
----
+## Flow Rules Installed per switch
+Priority 100 - ARP - FLOOD
+Priority 90  - ICMP - FLOOD
+Priority 80  - TCP - FLOOD
+Priority 70  - UDP - FLOOD
+Priority 10  - DEFAULT - FLOOD
 
 ## Test Scenarios
-### Scenario 1: Full mesh connectivity (pingall)
-All 6 hosts across 3 switches ping each other successfully with 0% packet loss.
 
-### Scenario 2: Cross-switch latency (h1 ping h6)
-Traffic travels across all 3 switches with minimal latency (~1.5ms average).
+### Scenario 1 - Normal Connectivity
+mininet> pingall
+Results: 0% dropped (30/30 received)
 
-### Scenario 3: TCP Throughput (iperf h1 to h6)
-TCP bandwidth measured at ~53 Gbits/sec demonstrating high performance SDN forwarding.
+### Scenario 2 - TCP Traffic via iperf
+mininet> iperf h1 h6
+TCP rule becomes ACTIVE with high packet counts.
 
----
+### Scenario 3 - Link Failure and Recovery
+mininet> link s1 s2 down
+mininet> pingall
+Results: 53% dropped (14/30 received)
 
-## Flow Rules Installed (per switch)
-| Priority | Type    | Action | Description          |
-|----------|---------|--------|----------------------|
-| 100      | ARP     | FLOOD  | Handle ARP requests  |
-| 90       | ICMP    | FLOOD  | Handle ping traffic  |
-| 80       | TCP     | FLOOD  | Handle TCP traffic   |
-| 10       | DEFAULT | FLOOD  | Handle all else      |
+mininet> link s1 s2 up
+mininet> pingall
+Results: 0% dropped (30/30 received)
 
----
+## Expected Output
+- Flow table displayed per switch with Rule#, Priority, Packets, Bytes, Type, Status
+- ACTIVE rules marked with >>
+- UNUSED rules clearly labeled
+- Summary showing total switches, rules, packets, active and unused counts
+
+## Tools Used
+- Mininet - network emulation
+- POX - SDN controller
+- Open vSwitch - software switch
+- tcpdump - packet capture and validation
 
 ## References
-1. Mininet: http://mininet.org
-2. POX Controller: https://github.com/noxrepo/pox
-3. OpenFlow 1.0 Spec: https://opennetworking.org
+- Mininet Documentation: http://mininet.org
+- POX Controller: https://github.com/noxrepo/pox
+- OpenFlow 1.0 Specification: https://opennetworking.org
+- Open vSwitch: https://www.openvswitch.org
